@@ -21,18 +21,29 @@
             border-radius: 15px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             border: 1px solid #333;
-            width: 400px;
+            width: 420px;
         }
         .date {
-            font-size: 2.3rem;
+            font-size: 2.1rem;
             font-weight: bold;
             color: #00ffcc;
             margin-bottom: 2px;
         }
-        .weekday {
+        .season {
             font-size: 1.3rem;
+            color: #ff7700;
+            margin-bottom: 2px;
+            font-weight: 600;
+        }
+        .year-day-sub {
+            font-size: 0.85rem;
+            color: #aaaaaa;
+            margin-bottom: 8px;
+        }
+        .weekday {
+            font-size: 1.1rem;
             color: #888888;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             font-weight: 500;
         }
         .time {
@@ -65,6 +76,8 @@
 
 <div class="container">
     <div class="date" id="world-date">Синхронизация...</div>
+    <div class="season" id="world-season">...</div>
+    <div class="year-day-sub" id="world-year-day">...</div>
     <div class="weekday" id="world-weekday">...</div>
     <div class="time" id="world-time">--:-- часы</div>
     
@@ -77,18 +90,25 @@
     const YEAR_DAYS = 325;            
     const YEAR_MS = DAY_MS * YEAR_DAYS; 
     const HOUR_MS = 400000; 
-    const MINUTE_MS = 16000; 
+    const MINUTE_MS = 8000; 
 
     const START_REAL_MS = Date.UTC(2026, 6, 14, 0, 0, 0); 
     const VIRTUAL_OFFSET_MS = 6 * YEAR_MS;
 
-    // Массив дней недели (индексы 0-4)
     const WEEKDAYS = [
         "Eitejür",
         "Täskörmajür",
         "Vädjastjür (Reeljür)",
         "Kuurajür (Skirajür)",
         "Käźisjür"
+    ];
+
+    const SEASONS = [
+        "Сезон холодов",       
+        "Сезон штормов",       
+        "Сезон первых цветов", 
+        "Сезон солнца",        
+        "Сезон урожая (листопад)" 
     ];
 
     let timeCorrectionOffset = 0; 
@@ -128,6 +148,22 @@
         }
     }
 
+    function getSeasonInfo(dayOfYear) {
+        if (dayOfYear <= 33) {
+            return { name: SEASONS[0], day: dayOfYear + 32 };
+        } else if (dayOfYear <= 98) {
+            return { name: SEASONS[1], day: dayOfYear - 33 };
+        } else if (dayOfYear <= 163) {
+            return { name: SEASONS[2], day: dayOfYear - 98 };
+        } else if (dayOfYear <= 228) {
+            return { name: SEASONS[3], day: dayOfYear - 163 };
+        } else if (dayOfYear <= 292) {
+            return { name: SEASONS[4], day: dayOfYear - 228 };
+        } else {
+            return { name: SEASONS[0], day: dayOfYear - 292 };
+        }
+    }
+
     function updateWorldTime() {
         const accurateNow = Date.now() + timeCorrectionOffset;
         const selectedZone = parseInt(document.getElementById('tz').value) || 0;
@@ -148,10 +184,10 @@
             }
         }
 
-        // Вычисляем общий порядковый номер дня от точки отсчета для определения дня недели
         const totalDaysFromEpoch = Math.floor(totalWorldMs / DAY_MS);
-        // Так как 1-й день — это Eitejür (индекс 0), используем остаток от деления на 5
         const weekdayIndex = ((totalDaysFromEpoch % 5) + 5) % 5;
+
+        const seasonInfo = getSeasonInfo(currentDay);
 
         let dayProgressMs = ((totalWorldMs % DAY_MS) + DAY_MS) % DAY_MS; 
         const currentHour = Math.floor(dayProgressMs / HOUR_MS);
@@ -162,7 +198,10 @@
         const displayHour = currentHour.toString().padStart(2, '0');
         const displayMinute = currentMinute.toString().padStart(2, '0');
 
-        document.getElementById('world-date').innerText = `${currentYear} год, ${currentDay} день`;
+        // Сначала день сезона, потом год
+        document.getElementById('world-date').innerText = `${seasonInfo.day}-й день сезона, ${currentYear} год`;
+        document.getElementById('world-season').innerText = seasonInfo.name;
+        document.getElementById('world-year-day').innerText = `День ${currentDay} из ${YEAR_DAYS} в году`;
         document.getElementById('world-weekday').innerText = WEEKDAYS[weekdayIndex];
         document.getElementById('world-time').innerText = `${displayHour}:${displayMinute} часы`;
     }
