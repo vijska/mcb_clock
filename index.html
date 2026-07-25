@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Часы Маня-Мира v3.4 (Стабильная синхронизация)</title>
+    <title>Часы Вымышленного Мира</title>
     <style>
         body {
             background-color: #121212;
@@ -24,10 +24,16 @@
             width: 400px;
         }
         .date {
-            font-size: 2.5rem;
+            font-size: 2.3rem;
             font-weight: bold;
             color: #00ffcc;
-            margin-bottom: 5px;
+            margin-bottom: 2px;
+        }
+        .weekday {
+            font-size: 1.3rem;
+            color: #888888;
+            margin-bottom: 10px;
+            font-weight: 500;
         }
         .time {
             font-size: 3.8rem;
@@ -59,6 +65,7 @@
 
 <div class="container">
     <div class="date" id="world-date">Синхронизация...</div>
+    <div class="weekday" id="world-weekday">...</div>
     <div class="time" id="world-time">--:-- часы</div>
     
     <select id="tz" class="timezone-select" onchange="updateWorldTime()"></select>
@@ -70,13 +77,22 @@
     const YEAR_DAYS = 325;            
     const YEAR_MS = DAY_MS * YEAR_DAYS; 
     const HOUR_MS = 400000; 
+    const MINUTE_MS = 16000; 
 
     const START_REAL_MS = Date.UTC(2026, 6, 14, 0, 0, 0); 
     const VIRTUAL_OFFSET_MS = 6 * YEAR_MS;
 
+    // Массив дней недели (индексы 0-4)
+    const WEEKDAYS = [
+        "Eitejür",
+        "Täskörmajür",
+        "Vädjastjür (Reeljür)",
+        "Kuurajür (Skirajür)",
+        "Käźisjür"
+    ];
+
     let timeCorrectionOffset = 0; 
 
-    // Генерируем часовые зоны от VŚ-12 до VŚ+12
     const select = document.getElementById('tz');
     for (let i = -12; i <= 12; i++) {
         let opt = document.createElement('option');
@@ -87,50 +103,28 @@
         select.appendChild(opt);
     }
 
-    // Сверхстабильный метод проверки времени через заголовки серверов
-    function syncWithInternet() {
+    async function syncWithInternet() {
         const statusEl = document.getElementById('sync-status');
-        
-        // Делаем легкий фоновый запрос к крупному открытому сервису
-        // HEAD запрос не скачивает страницу, а только берет заголовки с временем
-        fetch(window.location.href, { method: 'HEAD' })
-        .then(response => {
-            // Пытаемся взять системное время сервера, если файл запущен на хостинге
-            let serverDateStr = response.headers.get('Date');
-            parseAndApplyTime(serverDateStr);
-        })
-        .catch(() => {
-            // Если файл запущен локально на ПК, берем резервный CORS-прокси к Google/Yandex
-            fetch('https://httpbin.org/get')
-            .then(res => {
-                let serverDateStr = res.headers.get('Date');
-                parseAndApplyTime(serverDateStr);
-            })
-            .catch(() => {
-                statusEl.innerText = "Сервер недоступен. Используются часы ПК.";
-                statusEl.style.color = '#ff4444';
-            });
-        });
-    }
+        try {
+            const response = await fetch('https://worldtimeapi.org/api/timezone/Etc/UTC');
+            if (!response.ok) throw new Error();
+            
+            const data = await response.json();
+            const internetTimeMs = data.unixtime * 1000; 
+            const deviceTimeMs = Date.now();
 
-    function parseAndApplyTime(dateStr) {
-        const statusEl = document.getElementById('sync-status');
-        if (!dateStr) {
-            statusEl.innerText = "Синхронизировано по внутреннему таймеру.";
-            return;
-        }
+            timeCorrectionOffset = internetTimeMs - deviceTimeMs;
 
-        const internetTimeMs = Date.parse(dateStr);
-        const deviceTimeMs = Date.now();
-
-        timeCorrectionOffset = internetTimeMs - deviceTimeMs;
-
-        if (Math.abs(timeCorrectionOffset) > 2000) {
-            statusEl.innerText = `Синхронизировано по сети. Коррекция ПК: ${(timeCorrectionOffset / 1000).toFixed(0)} сек.`;
-            statusEl.style.color = '#ffaa00';
-        } else {
-            statusEl.innerText = "Синхронизировано по сети. Часы ПК идут точно.";
-            statusEl.style.color = '#00ff55';
+            if (Math.abs(timeCorrectionOffset) > 1000) {
+                statusEl.innerText = `Синхронизировано по сети. Коррекция ПК: ${(timeCorrectionOffset / 1000).toFixed(1)} сек.`;
+                statusEl.style.color = '#ffaa00';
+            } else {
+                statusEl.innerText = "Синхронизировано по сети. Часы ПК идут точно.";
+                statusEl.style.color = '#00ff55';
+            }
+        } catch (error) {
+            statusEl.innerText = "Сервер времени недоступен. Используются часы ПК.";
+            statusEl.style.color = '#ff4444';
         }
     }
 
@@ -154,23 +148,27 @@
             }
         }
 
+        // Вычисляем общий порядковый номер дня от точки отсчета для определения дня недели
+        const totalDaysFromEpoch = Math.floor(totalWorldMs / DAY_MS);
+        // Так как 1-й день — это Eitejür (индекс 0), используем остаток от деления на 5
+        const weekdayIndex = ((totalDaysFromEpoch % 5) + 5) % 5;
+
         let dayProgressMs = ((totalWorldMs % DAY_MS) + DAY_MS) % DAY_MS; 
         const currentHour = Math.floor(dayProgressMs / HOUR_MS);
 
-        const hourProgress = (dayProgressMs % HOUR_MS) / HOUR_MS;
-        const currentMinute = Math.floor(hourProgress * 100);
+        const hourProgressMs = dayProgressMs % HOUR_MS;
+        const currentMinute = Math.floor(hourProgressMs / MINUTE_MS);
 
         const displayHour = currentHour.toString().padStart(2, '0');
         const displayMinute = currentMinute.toString().padStart(2, '0');
 
         document.getElementById('world-date').innerText = `${currentYear} год, ${currentDay} день`;
+        document.getElementById('world-weekday').innerText = WEEKDAYS[weekdayIndex];
         document.getElementById('world-time').innerText = `${displayHour}:${displayMinute} часы`;
     }
 
     updateWorldTime();
     setInterval(updateWorldTime, 100);
-
-    // Запуск процесса синхронизации
     syncWithInternet();
     setInterval(syncWithInternet, 600000); 
 </script>
