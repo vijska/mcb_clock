@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Часы Мира Маня-КБ</title>
+    <title>Часы Вымышленного Мира</title>
     <style>
         * {
             box-sizing: border-box;
@@ -280,6 +280,25 @@
         "Сезон урожая (листопад)" 
     ];
 
+    // Список опорных серверов времени для калибровки
+    const TIME_SERVERS = [
+        {
+            name: "WorldTimeAPI",
+            url: "https://worldtimeapi.org/api/timezone/Etc/UTC",
+            parse: data => data.unixtime * 1000
+        },
+        {
+            name: "TimeAPI",
+            url: "https://timeapi.io/api/v1/time/current/zone?timeZone=UTC",
+            parse: data => new Date(data.dateTime + "Z").getTime()
+        },
+        {
+            name: "WorldClockAPI",
+            url: "https://worldclockapi.com/api/json/utc/now",
+            parse: data => new Date(data.currentDateTime).getTime()
+        }
+    ];
+
     let timeCorrectionOffset = 0; 
     let currentThemeMode = 'auto'; // 'auto', 'dark', 'light'
     let lastCalculatedHour = 12;
@@ -320,41 +339,19 @@
         document.body.setAttribute('data-theme', effectiveTheme);
     }
 
-        const TIME_SERVERS = [
-        {
-            name: "WorldTimeAPI",
-            url: "https://worldtimeapi.org/api/timezone/Etc/UTC",
-            parse: data => data.unixtime * 1000
-        },
-        {
-            name: "TimeAPI",
-            url: "https://timeapi.io/api/v1/time/current/zone?timeZone=UTC",
-            parse: data => {
-                // Преобразуем ISO дату в миллисекунды
-                return new Date(data.dateTime + "Z").getTime();
-            }
-        },
-        {
-            name: "WorldClockAPI",
-            url: "https://worldclockapi.com/api/json/utc/now",
-            parse: data => new Date(data.currentDateTime).getTime()
-        }
-    ];
-
     async function syncWithInternet() {
         const statusEl = document.getElementById('sync-status');
         let synced = false;
 
         for (const server of TIME_SERVERS) {
             try {
-                // Таймаут 3 секунды на запрос, чтобы сайт не «залипал», если сервер лежит
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 3000);
 
                 const response = await fetch(server.url, { signal: controller.signal });
                 clearTimeout(timeoutId);
 
-                if (!response.ok) throw new Error(Status ${response.status});
+                if (!response.ok) throw new Error(`Status ${response.status}`);
 
                 const data = await response.json();
                 const internetTimeMs = server.parse(data);
@@ -364,21 +361,19 @@
                 synced = true;
 
                 if (Math.abs(timeCorrectionOffset) > 1000) {
-                    statusEl.innerText = Синхронизировано (${server.name}). Коррекция ПК: ${(timeCorrectionOffset / 1000).toFixed(1)} сек.;
+                    statusEl.innerText = `Синхронизировано (${server.name}). Коррекция ПК: ${(timeCorrectionOffset / 1000).toFixed(1)} сек.`;
                     statusEl.style.color = '#d49b4b';
                 } else {
-                    statusEl.innerText = Синхронизировано по сети (${server.name}).;
+                    statusEl.innerText = `Синхронизировано по сети (${server.name}).`;
                     statusEl.style.color = '#52ab6a';
                 }
 
-                // Успешно синхронизировались — выходим из цикла
-                break;
+                break; // Выходим из цикла при успешном ответе
             } catch (error) {
-                console.warn(Сервер ${server.name} недоступен. Пробуем следующий..., error);
+                console.warn(`Сервер ${server.name} недоступен. Пробуем следующий...`, error);
             }
         }
 
-        // Если ни один из серверов не ответил
         if (!synced) {
             statusEl.innerText = "Все серверы времени недоступны. Используются часы ПК.";
             statusEl.style.color = '#c95353';
