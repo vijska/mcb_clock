@@ -190,8 +190,20 @@
             transition: border-color 0.2s, background 0.2s;
         }
 
+        .sync-box {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            align-items: center;
+        }
+
         .sync-status {
-            font-size: 0.78rem;
+            font-size: 0.82rem;
+            font-weight: 500;
+        }
+
+        .sync-detail {
+            font-size: 0.72rem;
             color: var(--sub-text);
         }
 
@@ -250,7 +262,11 @@
             <select id="tz" class="timezone-select" onchange="updateWorldTime()"></select>
         </div>
 
-        <div class="sync-status" id="sync-status">Сверяю часы с интернет-сервером...</div>
+        <!-- Блок со статусом и деталями подключения -->
+        <div class="sync-box">
+            <div class="sync-status" id="sync-status">Сверяю часы по опорным источникам...</div>
+            <div class="sync-detail" id="sync-detail">Метод калибровки: не определен</div>
+        </div>
     </div>
 </div>
 
@@ -280,22 +296,46 @@
         "Сезон урожая (листопад)" 
     ];
 
-    // Список опорных серверов времени для калибровки
-    const TIME_SERVERS = [
+    // Многоуровневый массив источников калибровки
+    const TIME_SOURCES = [
+        {
+            name: "Сервер хостинга (HTTP HEAD)",
+            method: "Заголовок Date собственного сервера",
+            fetchTime: async () => {
+                const res = await fetch(window.location.href + '?t=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
+                const dateStr = res.headers.get('date');
+                if (!dateStr) throw new Error("Заголовок Date отсутствует");
+                return new Date(dateStr).getTime();
+            }
+        },
+        {
+            name: "Cloudflare CDN",
+            method: "Трассировка Cloudflare (/cdn-cgi/trace)",
+            fetchTime: async () => {
+                const res = await fetch('https://1.1.1.1/cdn-cgi/trace');
+                const text = await res.text();
+                const match = text.match(/ts=(\d+\.\d+|\d+)/);
+                if (!match) throw new Error("Не удалось разобрать ответы Cloudflare");
+                return Math.floor(parseFloat(match[1]) * 1000);
+            }
+        },
         {
             name: "WorldTimeAPI",
-            url: "https://worldtimeapi.org/api/timezone/Etc/UTC",
-            parse: data => data.unixtime * 1000
+            method: "REST API (worldtimeapi.org)",
+            fetchTime: async () => {
+                const res = await fetch('https://worldtimeapi.org/api/timezone/Etc/UTC');
+                const data = await res.json();
+                return data.unixtime * 1000;
+            }
         },
         {
             name: "TimeAPI",
-            url: "https://timeapi.io/api/v1/time/current/zone?timeZone=UTC",
-            parse: data => new Date(data.dateTime + "Z").getTime()
-        },
-        {
-            name: "WorldClockAPI",
-            url: "https://worldclockapi.com/api/json/utc/now",
-            parse: data => new Date(data.currentDateTime).getTime()
+            method: "REST API (timeapi.io)",
+            fetchTime: async () => {
+                const res = await fetch('https://timeapi.io/api/v1/time/current/zone?timeZone=UTC');
+                const data = await res.json();
+                return new Date(data.dateTime + "Z").getTime();
+            }
         }
     ];
 
@@ -341,42 +381,41 @@
 
     async function syncWithInternet() {
         const statusEl = document.getElementById('sync-status');
+        const detailEl = document.getElementById('sync-detail');
         let synced = false;
 
-        for (const server of TIME_SERVERS) {
+        for (const source of TIME_SOURCES) {
             try {
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 3000);
 
-                const response = await fetch(server.url, { signal: controller.signal });
+                const internetTimeMs = await source.fetchTime();
                 clearTimeout(timeoutId);
 
-                if (!response.ok) throw new Error(`Status ${response.status}`);
-
-                const data = await response.json();
-                const internetTimeMs = server.parse(data);
                 const deviceTimeMs = Date.now();
-
                 timeCorrectionOffset = internetTimeMs - deviceTimeMs;
                 synced = true;
 
                 if (Math.abs(timeCorrectionOffset) > 1000) {
-                    statusEl.innerText = `Синхронизировано (${server.name}). Коррекция ПК: ${(timeCorrectionOffset / 1000).toFixed(1)} сек.`;
+                    statusEl.innerText = `Синхронизировано (${source.name})`;
                     statusEl.style.color = '#d49b4b';
+                    detailEl.innerText = `Подключение: ${source.method} | Погрешность ПК: ${(timeCorrectionOffset / 1000).toFixed(1)} сек.`;
                 } else {
-                    statusEl.innerText = `Синхронизировано по сети (${server.name}).`;
+                    statusEl.innerText = `Синхронизировано по сети`;
                     statusEl.style.color = '#52ab6a';
+                    detailEl.innerText = `Подключение: ${source.method} (точный системный ход)`;
                 }
 
-                break; // Выходим из цикла при успешном ответе
+                break; // Выходим при первом успешном подключении
             } catch (error) {
-                console.warn(`Сервер ${server.name} недоступен. Пробуем следующий...`, error);
+                console.warn(`Источник ${source.name} недоступен:`, error);
             }
         }
 
         if (!synced) {
-            statusEl.innerText = "Все серверы времени недоступны. Используются часы ПК.";
+            statusEl.innerText = "Все внешние серверы недоступны";
             statusEl.style.color = '#c95353';
+            detailEl.innerText = "Подключение: автономный режим (часы ПК)";
         }
     }
 
