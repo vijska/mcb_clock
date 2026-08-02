@@ -2,87 +2,256 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Часы Вымышленного Мира</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Часы Мира Маня-КБ</title>
     <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Тёмная тема (по умолчанию) */
+        :root {
+            --bg-color: #0f0f11;
+            --card-bg: #18181c;
+            --card-border: #2a2a30;
+            --title-color: #6e6e7a;
+            --primary-text: #f0f0f2;
+            --secondary-text: #adadb8;
+            --sub-text: #585863;
+            --select-bg: #222228;
+            --select-border: #33333d;
+            --button-bg: #222228;
+            --button-active-bg: #3a3a46;
+            --button-active-text: #ffffff;
+            --shadow: rgba(0, 0, 0, 0.25);
+        }
+
+        /* Светлая тема */
+        [data-theme="light"] {
+            --bg-color: #f4f4f6;
+            --card-bg: #ffffff;
+            --card-border: #e1e1e8;
+            --title-color: #8e8e9a;
+            --primary-text: #1a1a1e;
+            --secondary-text: #4a4a52;
+            --sub-text: #8a8a96;
+            --select-bg: #f0f0f4;
+            --select-border: #d1d1d9;
+            --button-bg: #eaeaea;
+            --button-active-bg: #1a1a1e;
+            --button-active-text: #ffffff;
+            --shadow: rgba(0, 0, 0, 0.05);
+        }
+
         body {
-            background-color: #121212;
-            color: #ffffff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--primary-text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            min-height: 100vh;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
+            padding: 20px;
+            transition: background-color 0.4s ease, color 0.4s ease;
         }
-        .container {
+
+        .clock-wrapper {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .segment {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 20px 24px;
             text-align: center;
-            background: #1e1e1e;
-            padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            border: 1px solid #333;
-            width: 420px;
+            box-shadow: 0 4px 20px var(--shadow);
+            transition: background-color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
         }
-        .date {
-            font-size: 2.1rem;
-            font-weight: bold;
-            color: #00ffcc;
-            margin-bottom: 2px;
-        }
-        .season {
-            font-size: 1.3rem;
-            color: #ff7700;
-            margin-bottom: 2px;
+
+        .segment-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--title-color);
+            margin-bottom: 8px;
             font-weight: 600;
         }
-        .year-day-sub {
-            font-size: 0.85rem;
-            color: #aaaaaa;
-            margin-bottom: 8px;
+
+        /* Сегмент времени */
+        .time-display {
+            font-family: "SF Mono", "Roboto Mono", "Courier New", monospace;
+            font-size: clamp(3rem, 10vw, 4.5rem);
+            font-weight: 700;
+            color: var(--primary-text);
+            line-height: 1.1;
+            letter-spacing: -0.02em;
         }
-        .weekday {
-            font-size: 1.1rem;
-            color: #888888;
-            margin-bottom: 15px;
+
+        /* Сегмент даты и сезона */
+        .date-primary {
+            font-size: clamp(1.3rem, 4vw, 1.7rem);
+            font-weight: 600;
+            color: var(--primary-text);
+            margin-bottom: 4px;
+        }
+
+        .season-name {
+            font-size: 1.05rem;
+            color: var(--secondary-text);
             font-weight: 500;
         }
-        .time {
-            font-size: 3.8rem;
-            font-weight: bold;
-            color: #ffaa00;
-            font-family: monospace;
-            margin-bottom: 25px;
+
+        .year-day-sub {
+            font-size: 0.8rem;
+            color: var(--sub-text);
+            margin-top: 6px;
         }
+
+        /* Сегмент дня недели */
+        .weekday-display {
+            font-size: 1.25rem;
+            font-weight: 500;
+            color: var(--secondary-text);
+        }
+
+        /* Сегмент настроек */
+        .settings-segment {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            width: 100%;
+            max-width: 320px;
+            align-items: center;
+        }
+
+        .control-label {
+            font-size: 0.75rem;
+            color: var(--sub-text);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Переключатель темы (табы) */
+        .theme-switcher {
+            display: flex;
+            background: var(--select-bg);
+            border: 1px solid var(--select-border);
+            border-radius: 8px;
+            padding: 3px;
+            width: 100%;
+        }
+
+        .theme-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--secondary-text);
+            padding: 6px 10px;
+            font-size: 0.82rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .theme-btn.active {
+            background: var(--button-active-bg);
+            color: var(--button-active-text);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+        }
+
         .timezone-select {
-            background: #2a2a2a;
-            color: #fff;
-            border: 1px solid #444;
-            padding: 10px 15px;
-            border-radius: 5px;
-            font-size: 1.1rem;
+            background: var(--select-bg);
+            color: var(--primary-text);
+            border: 1px solid var(--select-border);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 0.9rem;
             outline: none;
             cursor: pointer;
             width: 100%;
-            font-family: monospace;
-            margin-bottom: 15px;
+            font-family: inherit;
+            transition: border-color 0.2s, background 0.2s;
         }
+
         .sync-status {
-            font-size: 0.8rem;
-            color: #666;
+            font-size: 0.78rem;
+            color: var(--sub-text);
+        }
+
+        @media (min-width: 540px) {
+            .grid-row {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 16px;
+            }
         }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="date" id="world-date">Синхронизация...</div>
-    <div class="season" id="world-season">...</div>
-    <div class="year-day-sub" id="world-year-day">...</div>
-    <div class="weekday" id="world-weekday">...</div>
-    <div class="time" id="world-time">--:-- часы</div>
-    
-    <select id="tz" class="timezone-select" onchange="updateWorldTime()"></select>
-    <div class="sync-status" id="sync-status">Сверяю часы с интернет-сервером...</div>
+<div class="clock-wrapper">
+    <!-- Время -->
+    <div class="segment">
+        <div class="segment-title">Время</div>
+        <div class="time-display" id="world-time">--:--</div>
+    </div>
+
+    <!-- Адаптивная сетка -->
+    <div class="grid-row">
+        <!-- Дата и Сезон -->
+        <div class="segment">
+            <div class="segment-title">Дата и Сезон</div>
+            <div class="date-primary" id="world-date">Синхронизация...</div>
+            <div class="season-name" id="world-season">...</div>
+            <div class="year-day-sub" id="world-year-day">...</div>
+        </div>
+
+        <!-- День недели -->
+        <div class="segment" style="display: flex; flex-direction: column; justify-content: center;">
+            <div class="segment-title">День недели</div>
+            <div class="weekday-display" id="world-weekday">...</div>
+        </div>
+    </div>
+
+    <!-- Настройки -->
+    <div class="segment settings-segment">
+        <div class="segment-title">Настройки и Синхронизация</div>
+        
+        <!-- Выбор темы -->
+        <div class="control-group">
+            <div class="control-label">Оформление</div>
+            <div class="theme-switcher">
+                <button class="theme-btn active" id="theme-auto" onclick="setThemeMode('auto')">Адаптивная</button>
+                <button class="theme-btn" id="theme-dark" onclick="setThemeMode('dark')">Тёмная</button>
+                <button class="theme-btn" id="theme-light" onclick="setThemeMode('light')">Светлая</button>
+            </div>
+        </div>
+
+        <!-- Часовой пояс -->
+        <div class="control-group">
+            <div class="control-label">Часовой пояс</div>
+            <select id="tz" class="timezone-select" onchange="updateWorldTime()"></select>
+        </div>
+
+        <div class="sync-status" id="sync-status">Сверяю часы с интернет-сервером...</div>
+    </div>
 </div>
 
 <script>
@@ -112,6 +281,8 @@
     ];
 
     let timeCorrectionOffset = 0; 
+    let currentThemeMode = 'auto'; // 'auto', 'dark', 'light'
+    let lastCalculatedHour = 12;
 
     const select = document.getElementById('tz');
     for (let i = -12; i <= 12; i++) {
@@ -121,6 +292,32 @@
         opt.innerText = zoneName;
         if (i === 0) opt.selected = true; 
         select.appendChild(opt);
+    }
+
+    function setThemeMode(mode) {
+        currentThemeMode = mode;
+        ['auto', 'dark', 'light'].forEach(m => {
+            const btn = document.getElementById(`theme-${m}`);
+            if (m === mode) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+        applyTheme(lastCalculatedHour);
+    }
+
+    function applyTheme(hour) {
+        let effectiveTheme = currentThemeMode;
+        if (currentThemeMode === 'auto') {
+            // Дневное время на часах мира: с 5 до 20 включительно
+            if (hour >= 5 && hour <= 20) {
+                effectiveTheme = 'light';
+            } else {
+                effectiveTheme = 'dark';
+            }
+        }
+        document.body.setAttribute('data-theme', effectiveTheme);
     }
 
     async function syncWithInternet() {
@@ -137,14 +334,14 @@
 
             if (Math.abs(timeCorrectionOffset) > 1000) {
                 statusEl.innerText = `Синхронизировано по сети. Коррекция ПК: ${(timeCorrectionOffset / 1000).toFixed(1)} сек.`;
-                statusEl.style.color = '#ffaa00';
+                statusEl.style.color = '#d49b4b';
             } else {
-                statusEl.innerText = "Синхронизировано по сети. Часы ПК идут точно.";
-                statusEl.style.color = '#00ff55';
+                statusEl.innerText = "Синхронизировано по сети.";
+                statusEl.style.color = '#52ab6a';
             }
         } catch (error) {
             statusEl.innerText = "Сервер времени недоступен. Используются часы ПК.";
-            statusEl.style.color = '#ff4444';
+            statusEl.style.color = '#c95353';
         }
     }
 
@@ -198,12 +395,14 @@
         const displayHour = currentHour.toString().padStart(2, '0');
         const displayMinute = currentMinute.toString().padStart(2, '0');
 
-        // Сначала день сезона, потом год
-        document.getElementById('world-date').innerText = `${seasonInfo.day}-й день сезона, ${currentYear} год`;
+        lastCalculatedHour = currentHour;
+        applyTheme(currentHour);
+
+        document.getElementById('world-date').innerText = `${seasonInfo.day}-й день, ${currentYear} год`;
         document.getElementById('world-season').innerText = seasonInfo.name;
-        document.getElementById('world-year-day').innerText = `День ${currentDay} из ${YEAR_DAYS} в году`;
+        document.getElementById('world-year-day').innerText = `Порядковый день: ${currentDay} из ${YEAR_DAYS}`;
         document.getElementById('world-weekday').innerText = WEEKDAYS[weekdayIndex];
-        document.getElementById('world-time').innerText = `${displayHour}:${displayMinute} часы`;
+        document.getElementById('world-time').innerText = `${displayHour}:${displayMinute}`;
     }
 
     updateWorldTime();
