@@ -263,7 +263,7 @@
         </div>
 
         <!-- Блок со статусом и деталями подключения -->
-<div class="sync-box">
+        <div class="sync-box">
             <div class="sync-status" id="sync-status">Сверяю часы по опорным источникам...</div>
             <div class="sync-detail" id="sync-detail">Метод калибровки: не определен</div>
         </div>
@@ -361,7 +361,7 @@
     for (let i = -12; i <= 12; i++) {
         let opt = document.createElement('option');
         opt.value = i;
-        let zoneName = "VŚ" + (i > 0 ? +${i} : (i < 0 ? ${i} : ''));
+        let zoneName = "VŚ" + (i > 0 ? `+${i}` : (i < 0 ? `${i}` : ''));
         opt.innerText = zoneName;
         if (i === 0) opt.selected = true; 
         select.appendChild(opt);
@@ -370,7 +370,7 @@
     function setThemeMode(mode) {
         currentThemeMode = mode;
         ['auto', 'dark', 'light'].forEach(m => {
-            const btn = document.getElementById(theme-${m});
+            const btn = document.getElementById(`theme-${m}`);
             if (m === mode) {
                 btn.classList.add('active');
             } else {
@@ -411,18 +411,18 @@
                 synced = true;
 
                 if (Math.abs(timeCorrectionOffset) > 1000) {
-                    statusEl.innerText = Синхронизировано (${source.name});
+                    statusEl.innerText = `Синхронизировано (${source.name})`;
                     statusEl.style.color = '#d49b4b';
-                    detailEl.innerText = Подключение: ${source.method} | Погрешность ПК: ${(timeCorrectionOffset / 1000).toFixed(1)} сек.;
+                    detailEl.innerText = `Подключение: ${source.method} | Погрешность ПК: ${(timeCorrectionOffset / 1000).toFixed(1)} сек.`;
                 } else {
-                    statusEl.innerText = Синхронизировано по сети;
+                    statusEl.innerText = `Синхронизировано по сети`;
                     statusEl.style.color = '#52ab6a';
-                    detailEl.innerText = Подключение: ${source.method} (точный системный ход);
+                    detailEl.innerText = `Подключение: ${source.method} (точный системный ход)`;
                 }
 
                 break;
             } catch (error) {
-                console.warn(Источник ${source.name} недоступен:, error);
+                console.warn(`Источник ${source.name} недоступен:`, error);
             }
         }
 
@@ -474,4 +474,38 @@
 
         const seasonInfo = getSeasonInfo(currentDay);
 
-        let dayProgressMs = ((totalWorldMs % DAY_MS) + DAY_MS) % DAY_MS;    
+        let dayProgressMs = ((totalWorldMs % DAY_MS) + DAY_MS) % DAY_MS; 
+
+        // Расчет времени по новому формату: 20ч * 100м * 100с
+        const currentHour = Math.floor(dayProgressMs / HOUR_MS);
+        
+        const hourProgressMs = dayProgressMs % HOUR_MS;
+        const currentMinute = Math.floor(hourProgressMs / MINUTE_MS);
+
+        const minuteProgressMs = hourProgressMs % MINUTE_MS;
+        const currentSecond = Math.floor(minuteProgressMs / SECOND_MS);
+
+        const displayHour = currentHour.toString().padStart(2, '0');
+        const displayMinute = currentMinute.toString().padStart(2, '0');
+        const displaySecond = currentSecond.toString().padStart(2, '0');
+
+        lastCalculatedHour = currentHour;
+        applyTheme(currentHour);
+
+        // Обновление интерфейса
+        document.getElementById('world-date').innerText = `${seasonInfo.day}-ый день ${seasonInfo.name}`;
+        document.getElementById('world-year').innerText = `${currentYear} год`;
+        document.getElementById('world-year-day').innerText = `Порядковый день: ${currentDay} из ${YEAR_DAYS}`;
+        document.getElementById('world-weekday').innerText = WEEKDAYS[weekdayIndex];
+        document.getElementById('world-time').innerText = `${displayHour}:${displayMinute}:${displaySecond}`;
+    }
+
+    updateWorldTime();
+    // Частота обновления 100 мс гарантирует гладкую смену секунд
+    setInterval(updateWorldTime, 100); 
+    syncWithInternet();
+    setInterval(syncWithInternet, 600000); 
+</script>
+
+</body>
+</html>
