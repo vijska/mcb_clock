@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Часы Вымышленного Мира</title>
+    <title>Часы Маня-КБ</title>
     <style>
         * {
             box-sizing: border-box;
@@ -26,6 +26,11 @@
             --button-active-bg: #3a3a46;
             --button-active-text: #ffffff;
             --shadow: rgba(0, 0, 0, 0.25);
+            --dial-tick-major: #8e8e9a;
+            --dial-tick-minor: #3a3a44;
+            --hand-hour: #f0f0f2;
+            --hand-minute: #adadb8;
+            --hand-second: #e55353;
         }
 
         /* Светлая тема */
@@ -43,6 +48,11 @@
             --button-active-bg: #1a1a1e;
             --button-active-text: #ffffff;
             --shadow: rgba(0, 0, 0, 0.05);
+            --dial-tick-major: #5a5a66;
+            --dial-tick-minor: #d1d1d9;
+            --hand-hour: #1a1a1e;
+            --hand-minute: #5a5a66;
+            --hand-second: #d93838;
         }
 
         body {
@@ -81,14 +91,29 @@
             text-transform: uppercase;
             letter-spacing: 0.1em;
             color: var(--title-color);
-            margin-bottom: 8px;
+            margin-bottom: 12px;
             font-weight: 600;
         }
 
-        /* Сегмент времени */
+        /* Аналоговый циферблат */
+        .analog-clock-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .analog-clock {
+            width: 260px;
+            height: 260px;
+            position: relative;
+            border-radius: 50%;
+        }
+
+        /* Цифровое время */
         .time-display {
             font-family: "SF Mono", "Roboto Mono", "Courier New", monospace;
-            font-size: clamp(2.5rem, 8vw, 3.8rem);
+            font-size: clamp(2.2rem, 7vw, 3.5rem);
             font-weight: 700;
             color: var(--primary-text);
             line-height: 1.1;
@@ -135,7 +160,7 @@
             flex-direction: column;
             gap: 6px;
             width: 100%;
-            max-width: 320px;
+            max-width: 380px;
             align-items: center;
         }
 
@@ -146,8 +171,8 @@
             letter-spacing: 0.05em;
         }
 
-        /* Переключатель темы (табы) */
-        .theme-switcher {
+        /* Переключатели мест/кнопок */
+        .tab-switcher {
             display: flex;
             background: var(--select-bg);
             border: 1px solid var(--select-border);
@@ -156,13 +181,13 @@
             width: 100%;
         }
 
-        .theme-btn {
+        .tab-btn {
             flex: 1;
             background: transparent;
             border: none;
             color: var(--secondary-text);
-            padding: 6px 10px;
-            font-size: 0.82rem;
+            padding: 6px 8px;
+            font-size: 0.78rem;
             border-radius: 6px;
             cursor: pointer;
             font-family: inherit;
@@ -170,24 +195,10 @@
             transition: all 0.2s ease;
         }
 
-        .theme-btn.active {
+        .tab-btn.active {
             background: var(--button-active-bg);
             color: var(--button-active-text);
             box-shadow: 0 2px 5px rgba(0,0,0,0.15);
-        }
-
-        .timezone-select {
-            background: var(--select-bg);
-            color: var(--primary-text);
-            border: 1px solid var(--select-border);
-            padding: 8px 14px;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            outline: none;
-            cursor: pointer;
-            width: 100%;
-            font-family: inherit;
-            transition: border-color 0.2s, background 0.2s;
         }
 
         .sync-box {
@@ -220,8 +231,34 @@
 
 <div class="clock-wrapper">
     <!-- Время -->
-    <div class="segment">
+    <div class="segment" id="time-segment">
         <div class="segment-title">Время</div>
+        
+        <!-- Круговой циферблат -->
+        <div class="analog-clock-container" id="analog-clock-box">
+            <svg class="analog-clock" viewBox="0 0 300 300" id="clock-svg">
+                <!-- Деления и цифры генерируются скриптом -->
+                <g id="clock-ticks"></g>
+                <g id="clock-labels"></g>
+                
+                <!-- Стрелки -->
+                <!-- Часовая -->
+                <line id="hand-hour" x1="150" y1="150" x2="150" y2="85" 
+                      stroke="var(--hand-hour)" stroke-width="5.5" stroke-linecap="round" />
+                <!-- Минутная -->
+                <line id="hand-minute" x1="150" y1="150" x2="150" y2="55" 
+                      stroke="var(--hand-minute)" stroke-width="3.5" stroke-linecap="round" />
+                <!-- Секундная -->
+                <line id="hand-second" x1="150" y1="165" x2="150" y2="42" 
+                      stroke="var(--hand-second)" stroke-width="1.8" stroke-linecap="round" />
+                
+                <!-- Центр -->
+                <circle cx="150" cy="150" r="5" fill="var(--hand-second)" />
+                <circle cx="150" cy="150" r="2" fill="var(--card-bg)" />
+            </svg>
+        </div>
+
+        <!-- Цифровое время -->
         <div class="time-display" id="world-time">--:--:--</div>
     </div>
 
@@ -246,20 +283,24 @@
     <div class="segment settings-segment">
         <div class="segment-title">Настройки и Синхронизация</div>
         
-        <!-- Выбор темы -->
+        <!-- Отображение времени -->
         <div class="control-group">
-            <div class="control-label">Оформление</div>
-            <div class="theme-switcher">
-                <button class="theme-btn active" id="theme-auto" onclick="setThemeMode('auto')">Адаптивная</button>
-                <button class="theme-btn" id="theme-dark" onclick="setThemeMode('dark')">Тёмная</button>
-                <button class="theme-btn" id="theme-light" onclick="setThemeMode('light')">Светлая</button>
+            <div class="control-label">Отображение времени</div>
+            <div class="tab-switcher">
+                <button class="tab-btn active" id="display-both" onclick="setTimeDisplayMode('both')">Все</button>
+                <button class="tab-btn" id="display-analog" onclick="setTimeDisplayMode('analog')">Аналоговые</button>
+                <button class="tab-btn" id="display-digital" onclick="setTimeDisplayMode('digital')">Цифровые</button>
             </div>
         </div>
 
-        <!-- Часовой пояс -->
+        <!-- Выбор темы -->
         <div class="control-group">
-            <div class="control-label">Часовой пояс</div>
-            <select id="tz" class="timezone-select" onchange="updateWorldTime()"></select>
+            <div class="control-label">Оформление</div>
+            <div class="tab-switcher">
+                <button class="tab-btn active" id="theme-auto" onclick="setThemeMode('auto')">Адаптивная</button>
+                <button class="tab-btn" id="theme-dark" onclick="setThemeMode('dark')">Тёмная</button>
+                <button class="tab-btn" id="theme-light" onclick="setThemeMode('light')">Светлая</button>
+            </div>
         </div>
 
         <!-- Блок со статусом и деталями подключения -->
@@ -272,15 +313,11 @@
 
 <script>
     /* -------------------------------------------------------------
-       НОВАЯ СИСТЕМА ВРЕМЕНИ:
+       СИСТЕМА ВРЕМЕНИ:
        1 день = 20 часов
        1 час  = 100 минут
        1 минута = 100 секунд
-       Итого: 1 день = 200 000 секунд
-       1 день в реальных мс = 10 000 000 мс (как и прежде)
-       1 секунда = 50 мс (10 000 000 / 200 000)
-       1 минута  = 5 000 мс
-       1 час     = 500 000 мс
+       1 день = 10 000 000 мс
     ------------------------------------------------------------- */
     const DAY_MS = 10000000;          
     const YEAR_DAYS = 325;            
@@ -301,7 +338,6 @@
         "Käźisjür"
     ];
 
-    // Названия сезонов в родительном падеже для строки "... день [сезона]"
     const SEASONS_GENITIVE = [
         "сезона холодов",       
         "сезона штормов",       
@@ -310,7 +346,6 @@
         "сезона урожая (листопада)" 
     ];
 
-    // Многоуровневый массив источников калибровки
     const TIME_SOURCES = [
         {
             name: "Сервер хостинга (HTTP HEAD)",
@@ -354,17 +389,97 @@
     ];
 
     let timeCorrectionOffset = 0; 
-    let currentThemeMode = 'auto'; // 'auto', 'dark', 'light'
+    let currentThemeMode = 'auto'; 
+    let timeDisplayMode = 'both'; // 'both', 'analog', 'digital'
     let lastCalculatedHour = 10;
 
-    const select = document.getElementById('tz');
-    for (let i = -12; i <= 12; i++) {
-        let opt = document.createElement('option');
-        opt.value = i;
-        let zoneName = "VŚ" + (i > 0 ? `+${i}` : (i < 0 ? `${i}` : ''));
-        opt.innerText = zoneName;
-        if (i === 0) opt.selected = true; 
-        select.appendChild(opt);
+    /* -------------------------------------------------------------
+       ОТРИСОВКА ЦИФЕРБЛАТА (SVG)
+       - 100 мелких делений
+       - 20 крупных делений (с подписями 0..19)
+       - Отметка 10 — на вершине (угол 0° / 360°)
+    ------------------------------------------------------------- */
+    function renderClockFace() {
+        const ticksGroup = document.getElementById('clock-ticks');
+        const labelsGroup = document.getElementById('clock-labels');
+        ticksGroup.innerHTML = '';
+        labelsGroup.innerHTML = '';
+
+        const cx = 150, cy = 150;
+        const outerR = 138;
+
+        // 100 мелких делений
+        for (let i = 0; i < 100; i++) {
+            // Угол: каждые 1% = 3.6 градуса.
+            const angleDeg = i * 3.6;
+            const angleRad = (angleDeg - 90) * (Math.PI / 180);
+
+            const isMajor = (i % 5 === 0); // Каждое 5-е совпадает с часовым
+            const tickLen = isMajor ? 12 : 5;
+            const strokeColor = isMajor ? "var(--dial-tick-major)" : "var(--dial-tick-minor)";
+            const strokeWidth = isMajor ? 2.5 : 1;
+
+            const x1 = cx + (outerR - tickLen) * Math.cos(angleRad);
+            const y1 = cy + (outerR - tickLen) * Math.sin(angleRad);
+            const x2 = cx + outerR * Math.cos(angleRad);
+            const y2 = cy + outerR * Math.sin(angleRad);
+
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", x1);
+            line.setAttribute("y1", y1);
+            line.setAttribute("x2", x2);
+            line.setAttribute("y2", y2);
+            line.setAttribute("stroke", strokeColor);
+            line.setAttribute("stroke-width", strokeWidth);
+            line.setAttribute("stroke-linecap", "round");
+            ticksGroup.appendChild(line);
+
+            // Крупные деления (часы 0..19). Отметка 10 наверху.
+            if (isMajor) {
+                const hourNum = (i / 5 + 10) % 20; // 0 совпадает с верхом (i=0 -> 10)
+                const labelR = outerR - 24;
+
+                const lx = cx + labelR * Math.cos(angleRad);
+                const ly = cy + labelR * Math.sin(angleRad);
+
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute("x", lx);
+                text.setAttribute("y", ly + 4); // Центрирование по высоте
+                text.setAttribute("fill", "var(--primary-text)");
+                text.setAttribute("font-size", "11");
+                text.setAttribute("font-weight", "600");
+                text.setAttribute("font-family", "-apple-system, sans-serif");
+                text.setAttribute("text-anchor", "middle");
+                text.textContent = hourNum;
+                labelsGroup.appendChild(text);
+            }
+        }
+    }
+
+    function setTimeDisplayMode(mode) {
+        timeDisplayMode = mode;
+        ['both', 'analog', 'digital'].forEach(m => {
+            const btn = document.getElementById(`display-${m}`);
+            if (m === mode) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        const analogBox = document.getElementById('analog-clock-box');
+        const digitalBox = document.getElementById('world-time');
+
+        if (mode === 'both') {
+            analogBox.style.display = 'flex';
+            digitalBox.style.display = 'block';
+        } else if (mode === 'analog') {
+            analogBox.style.display = 'flex';
+            digitalBox.style.display = 'none';
+        } else if (mode === 'digital') {
+            analogBox.style.display = 'none';
+            digitalBox.style.display = 'block';
+        }
     }
 
     function setThemeMode(mode) {
@@ -383,7 +498,6 @@
     function applyTheme(hour) {
         let effectiveTheme = currentThemeMode;
         if (currentThemeMode === 'auto') {
-            // В системе из 20 часов день — с 5 до 16 часа
             if (hour >= 5 && hour <= 16) {
                 effectiveTheme = 'light';
             } else {
@@ -451,61 +565,6 @@
 
     function updateWorldTime() {
         const accurateNow = Date.now() + timeCorrectionOffset;
-        const selectedZone = parseInt(document.getElementById('tz').value) || 0;
-        const zoneOffsetMs = selectedZone * HOUR_MS;
+        let totalWorldMs = (accurateNow - START_REAL_MS) + VIRTUAL_OFFSET_MS;
 
-        let totalWorldMs = (accurateNow - START_REAL_MS) + VIRTUAL_OFFSET_MS + zoneOffsetMs;
-
-        let currentYear = Math.floor(totalWorldMs / YEAR_MS) + 1;
-        let currentDay = Math.floor((totalWorldMs % YEAR_MS) / DAY_MS) + 1;
-
-        if (totalWorldMs < 0) {
-            let positiveDays = Math.floor(totalWorldMs / DAY_MS);
-            currentYear = Math.floor(positiveDays / YEAR_DAYS) + 7;
-            currentDay = (positiveDays % YEAR_DAYS) + YEAR_DAYS + 1;
-            if (currentDay > YEAR_DAYS) {
-                currentDay -= YEAR_DAYS;
-                currentYear += 1;
-            }
-        }
-
-        const totalDaysFromEpoch = Math.floor(totalWorldMs / DAY_MS);
-        const weekdayIndex = ((totalDaysFromEpoch % 5) + 5) % 5;
-
-        const seasonInfo = getSeasonInfo(currentDay);
-
-        let dayProgressMs = ((totalWorldMs % DAY_MS) + DAY_MS) % DAY_MS; 
-
-        // Расчет времени по новому формату: 20ч * 100м * 100с
-        const currentHour = Math.floor(dayProgressMs / HOUR_MS);
-        
-        const hourProgressMs = dayProgressMs % HOUR_MS;
-        const currentMinute = Math.floor(hourProgressMs / MINUTE_MS);
-
-        const minuteProgressMs = hourProgressMs % MINUTE_MS;
-        const currentSecond = Math.floor(minuteProgressMs / SECOND_MS);
-
-        const displayHour = currentHour.toString().padStart(2, '0');
-        const displayMinute = currentMinute.toString().padStart(2, '0');
-        const displaySecond = currentSecond.toString().padStart(2, '0');
-
-        lastCalculatedHour = currentHour;
-        applyTheme(currentHour);
-
-        // Обновление интерфейса
-        document.getElementById('world-date').innerText = `${seasonInfo.day}-ый день ${seasonInfo.name}`;
-        document.getElementById('world-year').innerText = `${currentYear} год`;
-        document.getElementById('world-year-day').innerText = `Порядковый день: ${currentDay} из ${YEAR_DAYS}`;
-        document.getElementById('world-weekday').innerText = WEEKDAYS[weekdayIndex];
-        document.getElementById('world-time').innerText = `${displayHour}:${displayMinute}:${displaySecond}`;
-    }
-
-    updateWorldTime();
-    // Частота обновления 100 мс гарантирует гладкую смену секунд
-    setInterval(updateWorldTime, 100); 
-    syncWithInternet();
-    setInterval(syncWithInternet, 600000); 
-</script>
-
-</body>
-</html>
+        let currentYear = Mat
