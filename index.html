@@ -95,7 +95,6 @@
             font-weight: 600;
         }
 
-        /* Аналоговый циферблат */
         .analog-clock-container {
             display: flex;
             justify-content: center;
@@ -110,7 +109,6 @@
             border-radius: 50%;
         }
 
-        /* Цифровое время */
         .time-display {
             font-family: "SF Mono", "Roboto Mono", "Courier New", monospace;
             font-size: clamp(2.2rem, 7vw, 3.5rem);
@@ -120,7 +118,6 @@
             letter-spacing: -0.02em;
         }
 
-        /* Сегмент даты и сезона */
         .date-primary {
             font-size: clamp(1.1rem, 3.5vw, 1.45rem);
             font-weight: 600;
@@ -140,14 +137,12 @@
             margin-top: 6px;
         }
 
-        /* Сегмент дня недели */
         .weekday-display {
             font-size: 1.25rem;
             font-weight: 500;
             color: var(--secondary-text);
         }
 
-        /* Сегмент настроек */
         .settings-segment {
             display: flex;
             flex-direction: column;
@@ -229,60 +224,46 @@
 <body>
 
 <div class="clock-wrapper">
-    <!-- Время -->
     <div class="segment" id="time-segment">
         <div class="segment-title">Время</div>
         
-        <!-- Круговой циферблат -->
         <div class="analog-clock-container" id="analog-clock-box">
             <svg class="analog-clock" viewBox="0 0 300 300" id="clock-svg">
-                <!-- Деления и цифры -->
                 <g id="clock-ticks"></g>
                 <g id="clock-labels"></g>
                 
-                <!-- Стрелки -->
-                <!-- Часовая -->
                 <line id="hand-hour" x1="150" y1="150" x2="150" y2="85" 
                       stroke="var(--hand-hour)" stroke-width="5.5" stroke-linecap="round" />
-                <!-- Минутная -->
                 <line id="hand-minute" x1="150" y1="150" x2="150" y2="55" 
                       stroke="var(--hand-minute)" stroke-width="3.5" stroke-linecap="round" />
-                <!-- Секундная -->
                 <line id="hand-second" x1="150" y1="165" x2="150" y2="42" 
                       stroke="var(--hand-second)" stroke-width="1.8" stroke-linecap="round" />
                 
-                <!-- Центр -->
                 <circle cx="150" cy="150" r="5" fill="var(--hand-second)" />
                 <circle cx="150" cy="150" r="2" fill="var(--card-bg)" />
             </svg>
         </div>
 
-        <!-- Цифровое время -->
         <div class="time-display" id="world-time">--:--:--</div>
     </div>
 
-    <!-- Адаптивная сетка -->
     <div class="grid-row">
-        <!-- Дата и Сезон -->
         <div class="segment">
             <div class="segment-title">Дата и Сезон</div>
-            <div class="date-primary" id="world-date">Синхронизация...</div>
+            <div class="date-primary" id="world-date">Загрузка...</div>
             <div class="year-display" id="world-year">...</div>
             <div class="year-day-sub" id="world-year-day">...</div>
         </div>
 
-        <!-- День недели -->
         <div class="segment" style="display: flex; flex-direction: column; justify-content: center;">
             <div class="segment-title">День недели</div>
             <div class="weekday-display" id="world-weekday">...</div>
         </div>
     </div>
 
-    <!-- Настройки -->
     <div class="segment settings-segment">
         <div class="segment-title">Настройки и Синхронизация</div>
         
-        <!-- Отображение времени -->
         <div class="control-group">
             <div class="control-label">Отображение времени</div>
             <div class="tab-switcher">
@@ -292,7 +273,6 @@
             </div>
         </div>
 
-        <!-- Выбор темы -->
         <div class="control-group">
             <div class="control-label">Оформление</div>
             <div class="tab-switcher">
@@ -302,89 +282,39 @@
             </div>
         </div>
 
-        <!-- Блок со статусом и деталями подключения -->
         <div class="sync-box">
-            <div class="sync-status" id="sync-status">Сверяю часы по опорным источникам...</div>
-            <div class="sync-detail" id="sync-detail">Метод калибровки: не определен</div>
+            <div class="sync-status" id="sync-status">Автономный режим</div>
+            <div class="sync-detail" id="sync-detail">Используются системные часы устройства</div>
         </div>
     </div>
 </div>
 
 <script>
-    /* -------------------------------------------------------------
-       СИСТЕМА ВРЕМЕНИ:
-       1 день = 20 часов
-       1 час  = 100 минут
-       1 минута = 100 секунд
-       1 день = 10 000 000 мс
-    ------------------------------------------------------------- */
     const DAY_MS = 10000000;          
     const YEAR_DAYS = 325;            
     const YEAR_MS = DAY_MS * YEAR_DAYS; 
     
-    const HOUR_MS = 500000;   // 10 000 000 / 20
-    const MINUTE_MS = 5000;   // 500 000 / 100
-    const SECOND_MS = 50;     // 5 000 / 100
+    const HOUR_MS = 500000;   
+    const MINUTE_MS = 5000;   
+    const SECOND_MS = 50;     
 
     const START_REAL_MS = Date.UTC(2026, 6, 14, 0, 0, 0); 
     const VIRTUAL_OFFSET_MS = 6 * YEAR_MS;
 
     const WEEKDAYS = [
         "Eitejür",
-        "Täskörmäjür",
+        "Täskörmäjur",
         "Vädjastjür (Reeljür)",
         "Kuurajür (Skirajür)",
         "Käźisjür"
     ];
 
     const SEASONS_GENITIVE = [
-        "сезона холодов",       
-        "сезона штормов",       
-        "сезона первых цветов", 
-        "сезона солнца",        
-        "сезона урожая (листопада)" 
-    ];
-
-    const TIME_SOURCES = [
-        {
-            name: "Сервер хостинга (HTTP HEAD)",
-            method: "Заголовок Date собственного сервера",
-            fetchTime: async () => {
-                const res = await fetch(window.location.href + '?t=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
-                const dateStr = res.headers.get('date');
-                if (!dateStr) throw new Error("Заголовок Date отсутствует");
-                return new Date(dateStr).getTime();
-            }
-        },
-        {
-            name: "Cloudflare CDN",
-            method: "Трассировка Cloudflare (/cdn-cgi/trace)",
-            fetchTime: async () => {
-                const res = await fetch('https://1.1.1.1/cdn-cgi/trace');
-                const text = await res.text();
-                const match = text.match(/ts=(\d+\.\d+|\d+)/);
-                if (!match) throw new Error("Не удалось разобрать ответы Cloudflare");
-                return Math.floor(parseFloat(match[1]) * 1000);
-            }
-        },
-        {
-            name: "WorldTimeAPI",
-            method: "REST API (worldtimeapi.org)",
-            fetchTime: async () => {
-                const res = await fetch('https://worldtimeapi.org/api/timezone/Etc/UTC');
-                const data = await res.json();
-                return data.unixtime * 1000;
-            }
-        },
-        {
-            name: "TimeAPI",
-            method: "REST API (timeapi.io)",
-            fetchTime: async () => {
-                const res = await fetch('https://timeapi.io/api/v1/time/current/zone?timeZone=UTC');
-                const data = await res.json();
-                return new Date(data.dateTime + "Z").getTime();
-            }
-        }
+        "сесона холодов",       
+        "сесона штормов",       
+        "сесона первых цветов", 
+        "сесона солнца",        
+        "сесона урожая (листопада)" 
     ];
 
     let timeCorrectionOffset = 0; 
@@ -392,13 +322,6 @@
     let timeDisplayMode = 'both'; 
     let lastCalculatedHour = 10;
 
-    /* -------------------------------------------------------------
-       ОТРИСОВКА ЦИФЕРБЛАТА (SVG)
-       - 100 мелких делений
-       - 20 крупных делений
-       - 10 наверху (0 градусов)
-       - 20 внизу (180 градусов)
-    ------------------------------------------------------------- */
     function renderClockFace() {
         const ticksGroup = document.getElementById('clock-ticks');
         const labelsGroup = document.getElementById('clock-labels');
@@ -408,10 +331,7 @@
         const cx = 150, cy = 150;
         const outerR = 138;
 
-        // 100 мелких делений по всей окружности
         for (let i = 0; i < 100; i++) {
-            // Каждое мелкое деление = 3.6 градуса. 
-            // -90 градусов смещает ноль на вершину (12 часов в стандартах SVG)
             const angleDeg = i * 3.6;
             const angleRad = (angleDeg - 90) * (Math.PI / 180);
 
@@ -435,11 +355,8 @@
             line.setAttribute("stroke-linecap", "round");
             ticksGroup.appendChild(line);
 
-            // 20 крупных делений (часов)
             if (isMajor) {
-                const hourIndex = i / 5; // 0..19
-                // Индекс 0 — это верх (10 часов). 
-                // Индекс 10 — это низ (20 часов вместо 0).
+                const hourIndex = i / 5; 
                 let hourNum = (hourIndex + 10) % 20;
                 if (hourNum === 0) hourNum = 20; 
 
@@ -512,44 +429,53 @@
         document.body.setAttribute('data-theme', effectiveTheme);
     }
 
-    async function syncWithInternet() {
+    /* Быстрый неблокирующий запрос к одному API с таймаутом в 300мс */
+    function fetchSingleTime(url, parseFn) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 300);
+
+        return fetch(url, { signal: controller.signal, cache: 'no-store' })
+            .then(res => {
+                clearTimeout(timeoutId);
+                if (!res.ok) throw new Error("HTTP Status " + res.status);
+                return res.json();
+            })
+            .then(parseFn);
+    }
+
+    function syncWithInternet() {
         const statusEl = document.getElementById('sync-status');
         const detailEl = document.getElementById('sync-detail');
-        let synced = false;
 
-        for (const source of TIME_SOURCES) {
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 3000);
+        const requests = [
+            fetchSingleTime('https://worldtimeapi.org/api/timezone/Etc/UTC', data => ({ name: 'WorldTimeAPI', time: data.unixtime * 1000 })),
+            fetchSingleTime('https://timeapi.io/api/v1/time/current/zone?timeZone=UTC', data => ({ name: 'TimeAPI', time: new Date(data.dateTime + "Z").getTime() }))
+        ];
 
-                const internetTimeMs = await source.fetchTime();
-                clearTimeout(timeoutId);
-
+        // Используем Promise.any, чтобы взять ответ от первого успевшего сервера
+        Promise.any(requests)
+            .then(result => {
                 const deviceTimeMs = Date.now();
-                timeCorrectionOffset = internetTimeMs - deviceTimeMs;
-                synced = true;
+                timeCorrectionOffset = result.time - deviceTimeMs;
+                const diffSec = (timeCorrectionOffset / 1000).toFixed(1);
 
                 if (Math.abs(timeCorrectionOffset) > 1000) {
-                    statusEl.innerText = `Синхронизировано (${source.name})`;
+                    statusEl.innerText = `Синхронизировано (${result.name})`;
                     statusEl.style.color = '#d49b4b';
-                    detailEl.innerText = `Подключение: ${source.method} | Погрешность ПК: ${(timeCorrectionOffset / 1000).toFixed(1)} сек.`;
+                    detailEl.innerText = `Погрешность ПК: ${diffSec} сек.`;
                 } else {
                     statusEl.innerText = `Синхронизировано по сети`;
                     statusEl.style.color = '#52ab6a';
-                    detailEl.innerText = `Подключение: ${source.method} (точный системный ход)`;
+                    detailEl.innerText = `Источник: ${result.name} (Часы ПК точные)`;
                 }
-
-                break;
-            } catch (error) {
-                console.warn(`Источник ${source.name} недоступен:`, error);
-            }
-        }
-
-        if (!synced) {
-            statusEl.innerText = "Все внешние серверы недоступны";
-            statusEl.style.color = '#c95353';
-            detailEl.innerText = "Подключение: автономный режим (часы ПК)";
-        }
+            })
+            .catch(() => {
+                // Если все внешние API заблокированы/не ответили за 300мс — мягкий откат на часы устройства
+                timeCorrectionOffset = 0;
+                statusEl.innerText = "Автономный режим";
+                statusEl.style.color = '#8e8e9a';
+                detailEl.innerText = "Внешние API недоступны (используются часы устройства)";
+            });
     }
 
     function getSeasonInfo(dayOfYear) {
@@ -570,4 +496,63 @@
 
     function updateWorldTime() {
         const accurateNow = Date.now() + timeCorrectionOffset;
-  
+        let totalWorldMs = (accurateNow - START_REAL_MS) + VIRTUAL_OFFSET_MS;
+
+        let currentYear = Math.floor(totalWorldMs / YEAR_MS) + 1;
+        let currentDay = Math.floor((totalWorldMs % YEAR_MS) / DAY_MS) + 1;
+
+        if (totalWorldMs < 0) {
+            let positiveDays = Math.floor(totalWorldMs / DAY_MS);
+            currentYear = Math.floor(positiveDays / YEAR_DAYS) + 7;
+            currentDay = (positiveDays % YEAR_DAYS) + YEAR_DAYS + 1;
+            if (currentDay > YEAR_DAYS) {
+                currentDay -= YEAR_DAYS;
+                currentYear += 1;
+            }
+        }
+
+        const totalDaysFromEpoch = Math.floor(totalWorldMs / DAY_MS);
+        const weekdayIndex = ((totalDaysFromEpoch % 5) + 5) % 5;
+
+        const seasonInfo = getSeasonInfo(currentDay);
+
+        let dayProgressMs = ((totalWorldMs % DAY_MS) + DAY_MS) % DAY_MS; 
+
+        const currentHour = Math.floor(dayProgressMs / HOUR_MS);
+        
+        const hourProgressMs = dayProgressMs % HOUR_MS;
+        const currentMinute = Math.floor(hourProgressMs / MINUTE_MS);
+
+        const minuteProgressMs = hourProgressMs % MINUTE_MS;
+        const currentSecond = Math.floor(minuteProgressMs / SECOND_MS);
+
+        const displayHour = currentHour.toString().padStart(2, '0');
+        const displayMinute = currentMinute.toString().padStart(2, '0');
+        const displaySecond = currentSecond.toString().padStart(2, '0');
+
+        lastCalculatedHour = currentHour;
+        applyTheme(currentHour);
+
+        const hourRatio = dayProgressMs / DAY_MS;             
+        const minuteRatio = hourProgressMs / HOUR_MS;         
+        const secondRatio = minuteProgressMs / MINUTE_MS;     
+
+        const hourAngle = (hourRatio * 360 - 180) % 360;
+        const minuteAngle = minuteRatio * 360;
+        const secondAngle = secondRatio * 360;
+
+        document.getElementById('hand-hour').setAttribute('transform', `rotate(${hourAngle} 150 150)`);
+        document.getElementById('hand-minute').setAttribute('transform', `rotate(${minuteAngle} 150 150)`);
+        document.getElementById('hand-second').setAttribute('transform', `rotate(${secondAngle} 150 150)`);
+
+        document.getElementById('world-date').innerText = `${seasonInfo.day}-ый день ${seasonInfo.name}`;
+        document.getElementById('world-year').innerText = `${currentYear} год`;
+        document.getElementById('world-year-day').innerText = `Порядковый день: ${currentDay} из ${YEAR_DAYS}`;
+        document.getElementById('world-weekday').innerText = WEEKDAYS[weekdayIndex];
+        document.getElementById('world-time').innerText = `${displayHour}:${displayMinute}:${displaySecond}`;
+    }
+
+    renderClockFace();
+    updateWorldTime();
+    
+    setInterv
