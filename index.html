@@ -429,10 +429,10 @@
         document.body.setAttribute('data-theme', effectiveTheme);
     }
 
-    /* Быстрый неблокирующий запрос к одному API с таймаутом в 300мс */
+    /* Быстрый неблокирующий запрос к одному API с таймаутом в 4000мс */
     function fetchSingleTime(url, parseFn) {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 300);
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
 
         return fetch(url, { signal: controller.signal, cache: 'no-store' })
             .then(res => {
@@ -470,7 +470,7 @@
                 }
             })
             .catch(() => {
-                // Если все внешние API заблокированы/не ответили за 300мс — мягкий откат на часы устройства
+                // Если все внешние API заблокированы/не ответили — мягкий откат на часы устройства
                 timeCorrectionOffset = 0;
                 statusEl.innerText = "Автономный режим";
                 statusEl.style.color = '#8e8e9a';
@@ -554,5 +554,9 @@
 
     renderClockFace();
     updateWorldTime();
-    
-    setInterv
+    syncWithInternet();                       // запуск синхронизации при старте
+    setInterval(updateWorldTime, 50);         // обновление времени каждые 50 мс
+    setInterval(syncWithInternet, 300000);    // повторная синхронизация раз в 5 минут
+</script>
+</body>
+</html>
