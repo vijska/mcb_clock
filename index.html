@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Часы Маня-КБ Мира</title>
+    <title>Часы Вымышленного Мира</title>
     <style>
         * {
             box-sizing: border-box;
@@ -88,7 +88,7 @@
         /* Сегмент времени */
         .time-display {
             font-family: "SF Mono", "Roboto Mono", "Courier New", monospace;
-            font-size: clamp(3rem, 10vw, 4.5rem);
+            font-size: clamp(2.5rem, 8vw, 3.8rem);
             font-weight: 700;
             color: var(--primary-text);
             line-height: 1.1;
@@ -97,13 +97,13 @@
 
         /* Сегмент даты и сезона */
         .date-primary {
-            font-size: clamp(1.3rem, 4vw, 1.7rem);
+            font-size: clamp(1.1rem, 3.5vw, 1.45rem);
             font-weight: 600;
             color: var(--primary-text);
-            margin-bottom: 4px;
+            margin-bottom: 6px;
         }
 
-        .season-name {
+        .year-display {
             font-size: 1.05rem;
             color: var(--secondary-text);
             font-weight: 500;
@@ -222,7 +222,7 @@
     <!-- Время -->
     <div class="segment">
         <div class="segment-title">Время</div>
-        <div class="time-display" id="world-time">--:--</div>
+        <div class="time-display" id="world-time">--:--:--</div>
     </div>
 
     <!-- Адаптивная сетка -->
@@ -231,7 +231,7 @@
         <div class="segment">
             <div class="segment-title">Дата и Сезон</div>
             <div class="date-primary" id="world-date">Синхронизация...</div>
-            <div class="season-name" id="world-season">...</div>
+            <div class="year-display" id="world-year">...</div>
             <div class="year-day-sub" id="world-year-day">...</div>
         </div>
 
@@ -263,7 +263,7 @@
         </div>
 
         <!-- Блок со статусом и деталями подключения -->
-        <div class="sync-box">
+<div class="sync-box">
             <div class="sync-status" id="sync-status">Сверяю часы по опорным источникам...</div>
             <div class="sync-detail" id="sync-detail">Метод калибровки: не определен</div>
         </div>
@@ -271,11 +271,24 @@
 </div>
 
 <script>
+    /* -------------------------------------------------------------
+       НОВАЯ СИСТЕМА ВРЕМЕНИ:
+       1 день = 20 часов
+       1 час  = 100 минут
+       1 минута = 100 секунд
+       Итого: 1 день = 200 000 секунд
+       1 день в реальных мс = 10 000 000 мс (как и прежде)
+       1 секунда = 50 мс (10 000 000 / 200 000)
+       1 минута  = 5 000 мс
+       1 час     = 500 000 мс
+    ------------------------------------------------------------- */
     const DAY_MS = 10000000;          
     const YEAR_DAYS = 325;            
     const YEAR_MS = DAY_MS * YEAR_DAYS; 
-    const HOUR_MS = 400000; 
-    const MINUTE_MS = 8000; 
+    
+    const HOUR_MS = 500000;   // 10 000 000 / 20
+    const MINUTE_MS = 5000;   // 500 000 / 100
+    const SECOND_MS = 50;     // 5 000 / 100
 
     const START_REAL_MS = Date.UTC(2026, 6, 14, 0, 0, 0); 
     const VIRTUAL_OFFSET_MS = 6 * YEAR_MS;
@@ -288,12 +301,13 @@
         "Käźisjür"
     ];
 
-    const SEASONS = [
-        "Сезон холодов",       
-        "Сезон штормов",       
-        "Сезон первых цветов", 
-        "Сезон солнца",        
-        "Сезон урожая (листопад)" 
+    // Названия сезонов в родительном падеже для строки "... день [сезона]"
+    const SEASONS_GENITIVE = [
+        "сезона холодов",       
+        "сезона штормов",       
+        "сезона первых цветов", 
+        "сезона солнца",        
+        "сезона урожая (листопада)" 
     ];
 
     // Многоуровневый массив источников калибровки
@@ -341,13 +355,13 @@
 
     let timeCorrectionOffset = 0; 
     let currentThemeMode = 'auto'; // 'auto', 'dark', 'light'
-    let lastCalculatedHour = 12;
+    let lastCalculatedHour = 10;
 
     const select = document.getElementById('tz');
     for (let i = -12; i <= 12; i++) {
         let opt = document.createElement('option');
         opt.value = i;
-        let zoneName = "VŚ" + (i > 0 ? `+${i}` : (i < 0 ? `${i}` : ''));
+        let zoneName = "VŚ" + (i > 0 ? +${i} : (i < 0 ? ${i} : ''));
         opt.innerText = zoneName;
         if (i === 0) opt.selected = true; 
         select.appendChild(opt);
@@ -356,7 +370,7 @@
     function setThemeMode(mode) {
         currentThemeMode = mode;
         ['auto', 'dark', 'light'].forEach(m => {
-            const btn = document.getElementById(`theme-${m}`);
+            const btn = document.getElementById(theme-${m});
             if (m === mode) {
                 btn.classList.add('active');
             } else {
@@ -369,8 +383,8 @@
     function applyTheme(hour) {
         let effectiveTheme = currentThemeMode;
         if (currentThemeMode === 'auto') {
-            // Дневное время на часах мира: с 5 до 20 включительно
-            if (hour >= 5 && hour <= 20) {
+            // В системе из 20 часов день — с 5 до 16 часа
+            if (hour >= 5 && hour <= 16) {
                 effectiveTheme = 'light';
             } else {
                 effectiveTheme = 'dark';
@@ -397,18 +411,18 @@
                 synced = true;
 
                 if (Math.abs(timeCorrectionOffset) > 1000) {
-                    statusEl.innerText = `Синхронизировано (${source.name})`;
+                    statusEl.innerText = Синхронизировано (${source.name});
                     statusEl.style.color = '#d49b4b';
-                    detailEl.innerText = `Подключение: ${source.method} | Погрешность ПК: ${(timeCorrectionOffset / 1000).toFixed(1)} сек.`;
+                    detailEl.innerText = Подключение: ${source.method} | Погрешность ПК: ${(timeCorrectionOffset / 1000).toFixed(1)} сек.;
                 } else {
-                    statusEl.innerText = `Синхронизировано по сети`;
+                    statusEl.innerText = Синхронизировано по сети;
                     statusEl.style.color = '#52ab6a';
-                    detailEl.innerText = `Подключение: ${source.method}`;
+                    detailEl.innerText = Подключение: ${source.method} (точный системный ход);
                 }
 
-                break; // Выходим при первом успешном подключении
+                break;
             } catch (error) {
-                console.warn(`Источник ${source.name} недоступен:`, error);
+                console.warn(Источник ${source.name} недоступен:, error);
             }
         }
 
@@ -421,17 +435,17 @@
 
     function getSeasonInfo(dayOfYear) {
         if (dayOfYear <= 33) {
-            return { name: SEASONS[0], day: dayOfYear + 32 };
+            return { name: SEASONS_GENITIVE[0], day: dayOfYear + 32 };
         } else if (dayOfYear <= 98) {
-            return { name: SEASONS[1], day: dayOfYear - 33 };
+            return { name: SEASONS_GENITIVE[1], day: dayOfYear - 33 };
         } else if (dayOfYear <= 163) {
-            return { name: SEASONS[2], day: dayOfYear - 98 };
+            return { name: SEASONS_GENITIVE[2], day: dayOfYear - 98 };
         } else if (dayOfYear <= 228) {
-            return { name: SEASONS[3], day: dayOfYear - 163 };
+            return { name: SEASONS_GENITIVE[3], day: dayOfYear - 163 };
         } else if (dayOfYear <= 292) {
-            return { name: SEASONS[4], day: dayOfYear - 228 };
+            return { name: SEASONS_GENITIVE[4], day: dayOfYear - 228 };
         } else {
-            return { name: SEASONS[0], day: dayOfYear - 292 };
+            return { name: SEASONS_GENITIVE[0], day: dayOfYear - 292 };
         }
     }
 
@@ -460,30 +474,4 @@
 
         const seasonInfo = getSeasonInfo(currentDay);
 
-        let dayProgressMs = ((totalWorldMs % DAY_MS) + DAY_MS) % DAY_MS; 
-        const currentHour = Math.floor(dayProgressMs / HOUR_MS);
-
-        const hourProgressMs = dayProgressMs % HOUR_MS;
-        const currentMinute = Math.floor(hourProgressMs / MINUTE_MS);
-
-        const displayHour = currentHour.toString().padStart(2, '0');
-        const displayMinute = currentMinute.toString().padStart(2, '0');
-
-        lastCalculatedHour = currentHour;
-        applyTheme(currentHour);
-
-        document.getElementById('world-date').innerText = `${seasonInfo.day}-й день, ${currentYear} год`;
-        document.getElementById('world-season').innerText = seasonInfo.name;
-        document.getElementById('world-year-day').innerText = `Порядковый день: ${currentDay} из ${YEAR_DAYS}`;
-        document.getElementById('world-weekday').innerText = WEEKDAYS[weekdayIndex];
-        document.getElementById('world-time').innerText = `${displayHour}:${displayMinute}`;
-    }
-
-    updateWorldTime();
-    setInterval(updateWorldTime, 100);
-    syncWithInternet();
-    setInterval(syncWithInternet, 600000); 
-</script>
-
-</body>
-</html>
+        let dayProgressMs = ((totalWorldMs % DAY_MS) + DAY_MS) % DAY_MS;    
