@@ -226,19 +226,19 @@
 <div class="clock-wrapper">
     <div class="segment" id="time-segment">
         <div class="segment-title">Время</div>
-        
+
         <div class="analog-clock-container" id="analog-clock-box">
             <svg class="analog-clock" viewBox="0 0 300 300" id="clock-svg">
                 <g id="clock-ticks"></g>
                 <g id="clock-labels"></g>
-                
-                <line id="hand-hour" x1="150" y1="150" x2="150" y2="85" 
+
+                <line id="hand-hour" x1="150" y1="150" x2="150" y2="85"
                       stroke="var(--hand-hour)" stroke-width="5.5" stroke-linecap="round" />
-                <line id="hand-minute" x1="150" y1="150" x2="150" y2="55" 
+                <line id="hand-minute" x1="150" y1="150" x2="150" y2="55"
                       stroke="var(--hand-minute)" stroke-width="3.5" stroke-linecap="round" />
-                <line id="hand-second" x1="150" y1="165" x2="150" y2="42" 
+                <line id="hand-second" x1="150" y1="165" x2="150" y2="42"
                       stroke="var(--hand-second)" stroke-width="1.8" stroke-linecap="round" />
-                
+
                 <circle cx="150" cy="150" r="5" fill="var(--hand-second)" />
                 <circle cx="150" cy="150" r="2" fill="var(--card-bg)" />
             </svg>
@@ -263,7 +263,7 @@
 
     <div class="segment settings-segment">
         <div class="segment-title">Настройки и Синхронизация</div>
-        
+
         <div class="control-group">
             <div class="control-label">Отображение времени</div>
             <div class="tab-switcher">
@@ -290,16 +290,19 @@
 </div>
 
 <script>
-    const DAY_MS = 10000000;          
-    const YEAR_DAYS = 325;            
-    const YEAR_MS = DAY_MS * YEAR_DAYS; 
-    
-    const HOUR_MS = 500000;   
-    const MINUTE_MS = 5000;   
-    const SECOND_MS = 50;     
+    /* =========================================================
+       КОНСТАНТЫ КАЛЕНДАРЯ И ЧАСОВ
+       ========================================================= */
+    const DAY_MS = 10000000;               // 1 "виртуальный" день = 10 000 000 мс
+    const YEAR_DAYS = 325;                 // дней в году
+    const YEAR_MS = DAY_MS * YEAR_DAYS;
 
-    const START_REAL_MS = Date.UTC(2026, 6, 14, 0, 0, 0); 
-    const VIRTUAL_OFFSET_MS = 6 * YEAR_MS;
+    const HOUR_MS = 500000;                // 1 виртуальный час
+    const MINUTE_MS = 5000;                // 1 виртуальная минута
+    const SECOND_MS = 50;                  // 1 виртуальная секунда
+
+    const START_REAL_MS = Date.UTC(2026, 6, 14, 0, 0, 0); // точка отсчёта (реальное UTC)
+    const VIRTUAL_OFFSET_MS = 6 * YEAR_MS;                // виртуальный сдвиг
 
     const WEEKDAYS = [
         "Eitejür",
@@ -310,18 +313,24 @@
     ];
 
     const SEASONS_GENITIVE = [
-        "сесона холодов",       
-        "сесона штормов",       
-        "сесона первых цветов", 
-        "сесона солнца",        
-        "сесона урожая (листопада)" 
+        "сесона холодов",
+        "сесона штормов",
+        "сесона первых цветов",
+        "сесона солнца",
+        "сесона урожая (листопада)"
     ];
 
-    let timeCorrectionOffset = 0; 
-    let currentThemeMode = 'auto'; 
-    let timeDisplayMode = 'both'; 
+    /* =========================================================
+       СОСТОЯНИЕ
+       ========================================================= */
+    let timeCorrectionOffset = 0;   // поправка к Date.now() в мс
+    let currentThemeMode = 'auto';
+    let timeDisplayMode = 'both';
     let lastCalculatedHour = 10;
 
+    /* =========================================================
+       ОТРИСОВКА ЦИФЕРБЛАТА
+       ========================================================= */
     function renderClockFace() {
         const ticksGroup = document.getElementById('clock-ticks');
         const labelsGroup = document.getElementById('clock-labels');
@@ -335,7 +344,7 @@
             const angleDeg = i * 3.6;
             const angleRad = (angleDeg - 90) * (Math.PI / 180);
 
-            const isMajor = (i % 5 === 0); 
+            const isMajor = (i % 5 === 0);
             const tickLen = isMajor ? 12 : 5;
             const strokeColor = isMajor ? "var(--dial-tick-major)" : "var(--dial-tick-minor)";
             const strokeWidth = isMajor ? 2.5 : 1;
@@ -356,9 +365,9 @@
             ticksGroup.appendChild(line);
 
             if (isMajor) {
-                const hourIndex = i / 5; 
+                const hourIndex = i / 5;
                 let hourNum = (hourIndex + 10) % 20;
-                if (hourNum === 0) hourNum = 20; 
+                if (hourNum === 0) hourNum = 20;
 
                 const labelR = outerR - 24;
                 const lx = cx + labelR * Math.cos(angleRad);
@@ -366,7 +375,7 @@
 
                 const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
                 text.setAttribute("x", lx);
-                text.setAttribute("y", ly + 4); 
+                text.setAttribute("y", ly + 4);
                 text.setAttribute("fill", "var(--primary-text)");
                 text.setAttribute("font-size", "11");
                 text.setAttribute("font-weight", "600");
@@ -378,15 +387,15 @@
         }
     }
 
+    /* =========================================================
+       ПЕРЕКЛЮЧАТЕЛИ UI
+       ========================================================= */
     function setTimeDisplayMode(mode) {
         timeDisplayMode = mode;
         ['both', 'analog', 'digital'].forEach(m => {
             const btn = document.getElementById(`display-${m}`);
-            if (m === mode) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
+            if (m === mode) btn.classList.add('active');
+            else btn.classList.remove('active');
         });
 
         const analogBox = document.getElementById('analog-clock-box');
@@ -408,11 +417,8 @@
         currentThemeMode = mode;
         ['auto', 'dark', 'light'].forEach(m => {
             const btn = document.getElementById(`theme-${m}`);
-            if (m === mode) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
+            if (m === mode) btn.classList.add('active');
+            else btn.classList.remove('active');
         });
         applyTheme(lastCalculatedHour);
     }
@@ -420,64 +426,128 @@
     function applyTheme(hour) {
         let effectiveTheme = currentThemeMode;
         if (currentThemeMode === 'auto') {
-            if (hour >= 5 && hour <= 16) {
-                effectiveTheme = 'light';
-            } else {
-                effectiveTheme = 'dark';
-            }
+            effectiveTheme = (hour >= 5 && hour <= 16) ? 'light' : 'dark';
         }
         document.body.setAttribute('data-theme', effectiveTheme);
     }
 
-    /* Быстрый неблокирующий запрос к одному API с таймаутом в 4000мс */
-    function fetchSingleTime(url, parseFn) {
+    /* =========================================================
+       СИНХРОНИЗАЦИЯ ПО ЗАГОЛОВКАМ Date
+       =========================================================
+       Любой HTTP-ответ содержит заголовок Date (GMT, точность 1 сек).
+       Заголовок Date входит в CORS-safelisted response headers, поэтому
+       доступен из JS даже для cross-origin запросов.
+       Компенсируем RTT: серверное время сопоставляем со серединой
+       интервала (t0 + t1) / 2.
+    */
+    function fetchTimeFromHeaders(url, useHead) {
+        const t0 = Date.now();
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 4000);
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        const opts = {
+            method: useHead ? 'HEAD' : 'GET',
+            cache: 'no-store',
+            signal: controller.signal
+        };
+
+        return fetch(url, opts)
+            .then(res => {
+                clearTimeout(timeoutId);
+                const t1 = Date.now();
+                const dateHeader = res.headers.get('date');
+                if (!dateHeader) throw new Error('No Date header from ' + url);
+                const serverTime = new Date(dateHeader).getTime();
+                if (isNaN(serverTime)) throw new Error('Bad Date header from ' + url);
+                const localMid = (t0 + t1) / 2;
+                return {
+                    name: new URL(url, location.href).hostname,
+                    time: serverTime,
+                    localMid,
+                    rtt: t1 - t0
+                };
+            })
+            .catch(err => {
+                clearTimeout(timeoutId);
+                throw err;
+            });
+    }
+
+    /* Резервный JSON-источник (точнее, но менее доступен) */
+    function fetchSingleJsonTime(url, parseFn) {
+        const t0 = Date.now();
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
 
         return fetch(url, { signal: controller.signal, cache: 'no-store' })
             .then(res => {
                 clearTimeout(timeoutId);
-                if (!res.ok) throw new Error("HTTP Status " + res.status);
+                if (!res.ok) throw new Error("HTTP " + res.status);
                 return res.json();
             })
-            .then(parseFn);
+            .then(data => {
+                const t1 = Date.now();
+                const parsed = parseFn(data);
+                return {
+                    name: parsed.name,
+                    time: parsed.time,
+                    localMid: (t0 + t1) / 2,
+                    rtt: t1 - t0
+                };
+            });
     }
 
     function syncWithInternet() {
         const statusEl = document.getElementById('sync-status');
         const detailEl = document.getElementById('sync-detail');
 
-        const requests = [
-            fetchSingleTime('https://worldtimeapi.org/api/timezone/Etc/UTC', data => ({ name: 'WorldTimeAPI', time: data.unixtime * 1000 })),
-            fetchSingleTime('https://timeapi.io/api/v1/time/current/zone?timeZone=UTC', data => ({ name: 'TimeAPI', time: new Date(data.dateTime + "Z").getTime() }))
+        /* Same-origin запрос — самый надёжный, не зависит от CORS. */
+        const sameOrigin = location.origin + location.pathname;
+
+        const headerRequests = [
+            fetchTimeFromHeaders(sameOrigin, true),                                  // сам GitHub Pages
+            fetchTimeFromHeaders('https://cloudflare.com/cdn-cgi/trace', false),     // Cloudflare
+            fetchTimeFromHeaders('https://www.google.com/generate_204', false),      // Google
+            fetchTimeFromHeaders('https://www.apple.com/', true)                     // Apple
         ];
 
-        // Используем Promise.any, чтобы взять ответ от первого успевшего сервера
-        Promise.any(requests)
-            .then(result => {
-                const deviceTimeMs = Date.now();
-                timeCorrectionOffset = result.time - deviceTimeMs;
-                const diffSec = (timeCorrectionOffset / 1000).toFixed(1);
+        const jsonRequests = [
+            fetchSingleJsonTime('https://worldtimeapi.org/api/timezone/Etc/UTC',
+                d => ({ name: 'WorldTimeAPI', time: d.unixtime * 1000 })),
+            fetchSingleJsonTime('https://timeapi.io/api/v1/time/current/zone?timeZone=UTC',
+                d => ({ name: 'TimeAPI', time: new Date(d.dateTime + "Z").getTime() }))
+        ];
 
-                if (Math.abs(timeCorrectionOffset) > 1000) {
+        Promise.any([...headerRequests, ...jsonRequests])
+            .then(result => {
+                /* Корректировка: сравниваем серверное время с локальным
+                   в момент генерации ответа (localMid), а не с Date.now() */
+                timeCorrectionOffset = result.time - result.localMid;
+                const diffMs = timeCorrectionOffset;
+                const diffSec = (diffMs / 1000).toFixed(1);
+
+                if (Math.abs(diffMs) > 1000) {
                     statusEl.innerText = `Синхронизировано (${result.name})`;
                     statusEl.style.color = '#d49b4b';
-                    detailEl.innerText = `Погрешность ПК: ${diffSec} сек.`;
+                    detailEl.innerText = `Погрешность: ${diffSec} сек, RTT ${result.rtt} мс`;
                 } else {
-                    statusEl.innerText = `Синхронизировано по сети`;
+                    statusEl.innerText = 'Синхронизировано по сети';
                     statusEl.style.color = '#52ab6a';
-                    detailEl.innerText = `Источник: ${result.name} (Часы ПК точные)`;
+                    detailEl.innerText = `Источник: ${result.name} (часы точные), RTT ${result.rtt} мс`;
                 }
             })
-            .catch(() => {
-                // Если все внешние API заблокированы/не ответили — мягкий откат на часы устройства
+            .catch(err => {
                 timeCorrectionOffset = 0;
-                statusEl.innerText = "Автономный режим";
+                statusEl.innerText = 'Автономный режим';
                 statusEl.style.color = '#8e8e9a';
-                detailEl.innerText = "Внешние API недоступны (используются часы устройства)";
+                detailEl.innerText = 'Все источники времени недоступны';
+                console.warn('Time sync failed:', err);
             });
     }
 
+    /* =========================================================
+       СЕЗОНЫ
+       ========================================================= */
     function getSeasonInfo(dayOfYear) {
         if (dayOfYear <= 33) {
             return { name: SEASONS_GENITIVE[0], day: dayOfYear + 32 };
@@ -494,6 +564,9 @@
         }
     }
 
+    /* =========================================================
+       ОБНОВЛЕНИЕ ВРЕМЕНИ
+       ========================================================= */
     function updateWorldTime() {
         const accurateNow = Date.now() + timeCorrectionOffset;
         let totalWorldMs = (accurateNow - START_REAL_MS) + VIRTUAL_OFFSET_MS;
@@ -516,10 +589,10 @@
 
         const seasonInfo = getSeasonInfo(currentDay);
 
-        let dayProgressMs = ((totalWorldMs % DAY_MS) + DAY_MS) % DAY_MS; 
+        let dayProgressMs = ((totalWorldMs % DAY_MS) + DAY_MS) % DAY_MS;
 
         const currentHour = Math.floor(dayProgressMs / HOUR_MS);
-        
+
         const hourProgressMs = dayProgressMs % HOUR_MS;
         const currentMinute = Math.floor(hourProgressMs / MINUTE_MS);
 
@@ -533,9 +606,9 @@
         lastCalculatedHour = currentHour;
         applyTheme(currentHour);
 
-        const hourRatio = dayProgressMs / DAY_MS;             
-        const minuteRatio = hourProgressMs / HOUR_MS;         
-        const secondRatio = minuteProgressMs / MINUTE_MS;     
+        const hourRatio = dayProgressMs / DAY_MS;
+        const minuteRatio = hourProgressMs / HOUR_MS;
+        const secondRatio = minuteProgressMs / MINUTE_MS;
 
         const hourAngle = (hourRatio * 360 - 180) % 360;
         const minuteAngle = minuteRatio * 360;
@@ -552,11 +625,20 @@
         document.getElementById('world-time').innerText = `${displayHour}:${displayMinute}:${displaySecond}`;
     }
 
+    /* =========================================================
+       ИНИЦИАЛИЗАЦИЯ
+       ========================================================= */
     renderClockFace();
     updateWorldTime();
-    syncWithInternet();                       // запуск синхронизации при старте
-    setInterval(updateWorldTime, 50);         // обновление времени каждые 50 мс
-    setInterval(syncWithInternet, 300000);    // повторная синхронизация раз в 5 минут
+
+    // Запускаем синхронизацию по заголовкам Date (сначала локально, потом внешне)
+    syncWithInternet();
+
+    // Обновляем время каждые 50 мс (это 1 виртуальная секунда)
+    setInterval(updateWorldTime, 50);
+
+    // Повторная синхронизация раз в 5 минут
+    setInterval(syncWithInternet, 5 * 60 * 1000);
 </script>
 </body>
 </html>
